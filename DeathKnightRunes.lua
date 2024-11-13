@@ -93,7 +93,7 @@ local CreateBar = function(index)
     bar.text:SetJustifyH("CENTER")
 
     bar.SetRuneColor = function(self)
-        local rune_type = GetRuneType(self.rune_index)
+        local rune_type = GetRuneType(self.index)
 
         local color = core.config.BLOOD_RUNE_COLOR
         if rune_type == 2 then
@@ -167,9 +167,10 @@ local CreateRunesFrame = function()
 
     -- Updates the type and CD of a rune
     frame.UpdateRunes = function(self, index)  -- # 5: frost => 3 frost
+        local rune_group = GetRuneGroup(index)
 
-        local rune_1 = GetRuneIndex(self.rune_group * 2 + 1)
-        local rune_2 = GetRuneIndex(rune_1 + 1)
+        local rune_1 = GetRuneIndex(rune_group * 2 + 1)
+        local rune_2 = GetRuneIndex(rune_group * 2 + 2)
 
         local bar_1 = frame.bars[rune_1]
         local bar_2 = frame.bars[rune_2]
@@ -228,15 +229,17 @@ local CreateRunesFrame = function()
     end
 
     -- Event handler for tracking runes
-    frame:SetScript("OnEvent", function(self, event, rune_index, ...)
+    frame:SetScript("OnEvent", function(self, event, index, ...)
 
         local _, class_id = UnitClassBase("player");
         if class_id ~= 6 then
             return
         end
 
+        local rune_index = GetRuneIndex(index)
+
         if event == "RUNE_POWER_UPDATE" then
-            if rune_index then
+            if index then
                 frame:UpdateRunes(rune_index)
             end
 
