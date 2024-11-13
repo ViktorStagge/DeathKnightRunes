@@ -19,7 +19,7 @@ core.config = {
     IN_COMBAT_ALPHA = 1,
 }
 
-core.runeIndices = {
+core.barIndices = {
     1, -- Blood Rune
     2, -- Blood Rune
     5, -- Frost Rune
@@ -28,30 +28,30 @@ core.runeIndices = {
     4, -- Unholy Rune
 }
 
-local function GetRuneIndex(index)
-    return core.runeIndices[index]
+local function GetBarIndex(rune_index)
+    return core.barIndices[rune_index]
 end
 
-local function GetRuneGroup(index)
-    if not index then return end
+local function GetRuneGroup(rune_index)
+    if not rune_index then return end
     local rune_group = 2
 
-    if index <= 2 then
+    if rune_index <= 2 then
         rune_group = 0
-    elseif index <= 4 then
+    elseif rune_index <= 4 then
         rune_group = 1
-    elseif index <= 6 then
+    elseif rune_index <= 6 then
         rune_group = 2
     end
 
     return rune_group
 end
 
-local CreateBar = function(index)
-    local bar = CreateFrame("StatusBar", "Rune_" .. index, core.frame)
-    bar.index = index
-    bar.rune_index = GetRuneIndex(index)
-    bar.rune_group = GetRuneGroup(index)
+local CreateBar = function(rune_index)
+    local bar = CreateFrame("StatusBar", "Rune_" .. rune_index, core.frame)
+    bar.index = rune_index
+    bar.bar_index = GetBarIndex(rune_index)
+    bar.rune_group = GetRuneGroup(rune_index)
     bar.extra_cd = 0
     bar.frozen = false
 
@@ -63,9 +63,9 @@ local CreateBar = function(index)
     bar:SetValue(8.33) -- Set the initial bar to be full
 
      -- Set the position of the bar
-    local group = math.floor((index - 1) / 2)
-    local rang = (index - 1) % 2
-    local x_offset = (index - 1) * core.config.BAR_WIDTH + group * core.config.GAP_BETWEEN_GROUPS + (rang + group) * core.config.GAP_INSIDE_GROUP
+    local group = math.floor((rune_index - 1) / 2)
+    local rang = (rune_index - 1) % 2
+    local x_offset = (rune_index - 1) * core.config.BAR_WIDTH + group * core.config.GAP_BETWEEN_GROUPS + (rang + group) * core.config.GAP_INSIDE_GROUP
     bar:SetPoint("LEFT", UIParent, "LEFT", core.config.FRAME_X + x_offset, core.config.FRAME_Y)
 
     -- Create a Background for the bar
@@ -161,16 +161,16 @@ local CreateRunesFrame = function()
     frame:SetAlpha(core.config.OUT_OF_COMBAT_ALPHA)
 
     frame.bars = {}
-    for index = 1,6 do
-        frame.bars[index] = CreateBar(index)
+    for rune_index = 1,6 do
+        frame.bars[rune_index] = CreateBar(rune_index)
     end
 
     -- Updates the type and CD of a rune
-    frame.UpdateRunes = function(self, index)  -- # 5: frost => 3 frost
-        local rune_group = GetRuneGroup(index)
+    frame.UpdateRunes = function(self, rune_index)
+        local rune_group = GetRuneGroup(rune_index)
 
-        local rune_1 = GetRuneIndex(rune_group * 2 + 1)
-        local rune_2 = GetRuneIndex(rune_group * 2 + 2)
+        local rune_1 = GetBarIndex(rune_group * 2 + 1)
+        local rune_2 = GetBarIndex(rune_group * 2 + 2)
 
         local bar_1 = frame.bars[rune_1]
         local bar_2 = frame.bars[rune_2]
@@ -196,14 +196,14 @@ local CreateRunesFrame = function()
             end
         end
 
-        if index == rune_1 then
+        if rune_index == rune_1 then
             if start_1 + rune_cd_1 + bar_1.extra_cd <= now + 0.01 then
                 bar_1.frozen = false
                 bar_1.extra_cd = 0
              end
         end
 
-        if index == rune_2 then
+        if rune_index == rune_2 then
             if start_2 + rune_cd_2 + bar_2.extra_cd <= now + 0.01 then
                 bar_2.frozen = false
                 bar_2.extra_cd = 0
@@ -223,29 +223,29 @@ local CreateRunesFrame = function()
 
     -- Updates the type and CD of all runes
     frame.UpdateAllRunes = function()
-        for rune_index = 1, 5, 2 do
-            frame:UpdateRunes(rune_index)
+        for bar_index = 1, 5, 2 do
+            frame:UpdateRunes(bar_index)
         end
     end
 
     -- Event handler for tracking runes
-    frame:SetScript("OnEvent", function(self, event, index, ...)
+    frame:SetScript("OnEvent", function(self, event, rune_index, ...)
 
         local _, class_id = UnitClassBase("player");
         if class_id ~= 6 then
             return
         end
 
-        local rune_index = GetRuneIndex(index)
+        local bar_index = GetBarIndex(rune_index)
 
         if event == "RUNE_POWER_UPDATE" then
-            if index then
-                frame:UpdateRunes(rune_index)
+            if rune_index then
+                frame:UpdateRunes(bar_index)
             end
 
         elseif event == "RUNE_TYPE_UPDATE" then
-            if rune_index then
-                frame.bars[rune_index]:SetRuneColor()
+            if bar_index then
+                frame.bars[bar_index]:SetRuneColor()
             end
 
         elseif event == "PLAYER_REGEN_ENABLED" then
@@ -263,8 +263,8 @@ local CreateRunesFrame = function()
 
     frame:SetScript("OnShow", function()
         -- Update each rune with the current values
-        for rune_index = 1, 6 do
-            frame:UpdateRunes(rune_index)
+        for bar_index = 1, 6 do
+            frame:UpdateRunes(bar_index)
         end
     end)
 
@@ -286,7 +286,7 @@ local CreateRunesFrame = function()
         end
 
         frame:StopMovingOrSizing()
-        
+
         -- Save the new position for future use
         local point, parent, relativePoint, xOffset, yOffset = self:GetPoint()
         frame.config.FRAME_X = xOffset
