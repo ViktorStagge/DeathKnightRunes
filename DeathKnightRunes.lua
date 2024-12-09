@@ -167,7 +167,7 @@ local CreateRunesFrame = function()
     frame:SetAlpha(core.config.OUT_OF_COMBAT_ALPHA)
 
     frame.bars = {}
-    for rune_index = 1,6 do
+    for rune_index = 1, 6 do
         frame.bars[rune_index] = CreateBar(rune_index)
     end
 
@@ -177,18 +177,10 @@ local CreateRunesFrame = function()
         bar:UpdateProgress(start, rune_cd, rune_ready)
     end
 
-    -- Updates the type and CD of a rune
-    frame.UpdateRuneGroup = function(self, rune_index)
-        local rune_group = GetRuneGroup(rune_index)
-
-        frame:UpdateRune(rune_group * 2 + 1)
-        frame:UpdateRune(rune_group * 2 + 2)
-    end
-
     -- Updates the type and CD of all runes
     frame.UpdateAllRunes = function(self)
-        for rune_index = 1, 5, 2 do
-            frame:UpdateRuneGroup(rune_index)
+        for rune_index = 1, 6 do
+            frame:UpdateRune(rune_index)
         end
     end
 
@@ -199,7 +191,7 @@ local CreateRunesFrame = function()
 
         if event == "RUNE_POWER_UPDATE" then
             if rune_index then
-                frame:UpdateRuneGroup(rune_index)
+                frame:UpdateRune(rune_index)
             end
 
         elseif event == "RUNE_TYPE_UPDATE" then
