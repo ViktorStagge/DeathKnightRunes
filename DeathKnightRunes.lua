@@ -28,10 +28,6 @@ core.barIndices = {
     4, -- Unholy Rune
 }
 
-local function GetBarIndex(rune_index)
-    return core.barIndices[rune_index]
-end
-
 local function GetRuneGroup(rune_index)
     if not rune_index then return end
     local rune_group = 2
@@ -47,13 +43,23 @@ local function GetRuneGroup(rune_index)
     return rune_group
 end
 
+local function split_string(input, delimiter)
+    local result = {}
+    for match in (input .. delimiter):gmatch("(.-)" .. delimiter) do
+        table.insert(result, match)
+    end
+    return result
+end
+
+local function GetBarIndex(rune_index)
+    return core.barIndices[rune_index]
+end
+
 local CreateBar = function(rune_index)
     local bar = CreateFrame("StatusBar", "Rune_" .. rune_index, core.frame)
-    bar.index = rune_index
+    bar.rune_index = rune_index
     bar.bar_index = GetBarIndex(rune_index)
     bar.rune_group = GetRuneGroup(rune_index)
-    bar.extra_cd = 0
-    bar.frozen = false
 
     bar:SetSize(core.config.BAR_WIDTH, core.config.BAR_HEIGHT)
     bar:SetStatusBarTexture("Interface/Addons/DeathKnightRunes/media/statusbar/bar_background.tga")
@@ -93,13 +99,13 @@ local CreateBar = function(rune_index)
     bar.text:SetJustifyH("CENTER")
 
     bar.SetRuneColor = function(self)
-        local rune_type = GetRuneType(self.index)
+        local rune_type = GetRuneType(self.rune_index)
 
         local color = core.config.BLOOD_RUNE_COLOR
         if rune_type == 2 then
-            color = core.config.FROST_RUNE_COLOR
-        elseif rune_type == 3 then
             color = core.config.UNHOLY_RUNE_COLOR
+        elseif rune_type == 3 then
+            color = core.config.FROST_RUNE_COLOR
         elseif rune_type == 4 then
             color = core.config.DEATH_RUNE_COLOR  -- Death Runes: Purple
         end
@@ -169,53 +175,14 @@ local CreateRunesFrame = function()
     frame.UpdateRunes = function(self, rune_index)
         local rune_group = GetRuneGroup(rune_index)
 
-        local rune_1 = GetBarIndex(rune_group * 2 + 1)
-        local rune_2 = GetBarIndex(rune_group * 2 + 2)
+        local rune_index_1 = rune_group * 2 + 1
+        local rune_index_2 = rune_group * 2 + 2
 
-        local bar_1 = frame.bars[rune_1]
-        local bar_2 = frame.bars[rune_2]
-
-        local now = GetTime()
-        local start_1, rune_cd_1, rune_ready_1 = GetRuneCooldown(rune_1)
-        local start_2, rune_cd_2, rune_ready_2 = GetRuneCooldown(rune_2)
-
-        if not rune_ready_2 then
-            if not rune_ready_1 then
-                if start_2 > start_1 then
-                    bar_2.extra_cd = start_1 + rune_cd_1 - now
-                    bar_1.extra_cd = 0
-                    bar_2.frozen = true
-                    bar_1.frozen = false
-                else
-                    bar_1.extra_cd = start_2 + rune_cd_2 - now
-                    bar_2.extra_cd = 0
-                    bar_1.frozen = true
-                    bar_2.frozen = false
-                end
-
-            end
-        end
-
-        if rune_index == rune_1 then
-            if start_1 + rune_cd_1 + bar_1.extra_cd <= now + 0.01 then
-                bar_1.frozen = false
-                bar_1.extra_cd = 0
-             end
-        end
-
-        if rune_index == rune_2 then
-            if start_2 + rune_cd_2 + bar_2.extra_cd <= now + 0.01 then
-                bar_2.frozen = false
-                bar_2.extra_cd = 0
-            end
-        end
-
-        if bar_2.frozen then
-            rune_cd_2 = rune_cd_2 + bar_2.extra_cd
-        end
-        if bar_1.frozen then
-            rune_cd_1 = rune_cd_1 + bar_1.extra_cd
-        end
+        local bar_1 = frame.bars[GetBarIndex(rune_index_1)]
+        local bar_2 = frame.bars[GetBarIndex(rune_index_2)]
+        
+        local start_1, rune_cd_1, rune_ready_1 = GetRuneCooldown(rune_index_1)
+        local start_2, rune_cd_2, rune_ready_2 = GetRuneCooldown(rune_index_2)
 
         bar_1:UpdateProgress(start_1, rune_cd_1, rune_ready_1)
         bar_2:UpdateProgress(start_2, rune_cd_2, rune_ready_2)
@@ -223,24 +190,19 @@ local CreateRunesFrame = function()
 
     -- Updates the type and CD of all runes
     frame.UpdateAllRunes = function()
-        for bar_index = 1, 5, 2 do
-            frame:UpdateRunes(bar_index)
+        for rune_index = 1, 5, 2 do
+            frame:UpdateRunes(rune_index)
         end
     end
 
     -- Event handler for tracking runes
     frame:SetScript("OnEvent", function(self, event, rune_index, ...)
 
-        local _, class_id = UnitClassBase("player");
-        if class_id ~= 6 then
-            return
-        end
-
         local bar_index = GetBarIndex(rune_index)
 
         if event == "RUNE_POWER_UPDATE" then
             if rune_index then
-                frame:UpdateRunes(bar_index)
+                frame:UpdateRunes(rune_index)
             end
 
         elseif event == "RUNE_TYPE_UPDATE" then
@@ -263,8 +225,8 @@ local CreateRunesFrame = function()
 
     frame:SetScript("OnShow", function()
         -- Update each rune with the current values
-        for bar_index = 1, 6 do
-            frame:UpdateRunes(bar_index)
+        for rune_index = 1, 6 do
+            frame:UpdateRunes(rune_index)
         end
     end)
 
