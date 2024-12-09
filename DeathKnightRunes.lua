@@ -171,27 +171,24 @@ local CreateRunesFrame = function()
         frame.bars[rune_index] = CreateBar(rune_index)
     end
 
+    frame.UpdateRune = function(self, rune_index)
+        local start, rune_cd, rune_ready = GetRuneCooldown(rune_index)
+        local bar = frame.bars[GetBarIndex(rune_index)]
+        bar:UpdateProgress(start, rune_cd, rune_ready)
+    end
+
     -- Updates the type and CD of a rune
-    frame.UpdateRunes = function(self, rune_index)
+    frame.UpdateRuneGroup = function(self, rune_index)
         local rune_group = GetRuneGroup(rune_index)
 
-        local rune_index_1 = rune_group * 2 + 1
-        local rune_index_2 = rune_group * 2 + 2
-
-        local bar_1 = frame.bars[GetBarIndex(rune_index_1)]
-        local bar_2 = frame.bars[GetBarIndex(rune_index_2)]
-        
-        local start_1, rune_cd_1, rune_ready_1 = GetRuneCooldown(rune_index_1)
-        local start_2, rune_cd_2, rune_ready_2 = GetRuneCooldown(rune_index_2)
-
-        bar_1:UpdateProgress(start_1, rune_cd_1, rune_ready_1)
-        bar_2:UpdateProgress(start_2, rune_cd_2, rune_ready_2)
+        frame:UpdateRune(rune_group * 2 + 1)
+        frame:UpdateRune(rune_group * 2 + 2)
     end
 
     -- Updates the type and CD of all runes
-    frame.UpdateAllRunes = function()
+    frame.UpdateAllRunes = function(self)
         for rune_index = 1, 5, 2 do
-            frame:UpdateRunes(rune_index)
+            frame:UpdateRuneGroup(rune_index)
         end
     end
 
@@ -202,7 +199,7 @@ local CreateRunesFrame = function()
 
         if event == "RUNE_POWER_UPDATE" then
             if rune_index then
-                frame:UpdateRunes(rune_index)
+                frame:UpdateRuneGroup(rune_index)
             end
 
         elseif event == "RUNE_TYPE_UPDATE" then
@@ -223,11 +220,9 @@ local CreateRunesFrame = function()
         return true
     end)
 
+    -- Update each rune with the current values
     frame:SetScript("OnShow", function()
-        -- Update each rune with the current values
-        for rune_index = 1, 6 do
-            frame:UpdateRunes(rune_index)
-        end
+        frame:UpdateAllRunes()
     end)
 
 
