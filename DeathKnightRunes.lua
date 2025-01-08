@@ -19,7 +19,8 @@ core.config = {
     IN_COMBAT_ALPHA = 1,
 }
 
-core.barIndices = {
+
+core.barToRuneIndex = {
     1, -- Blood Rune
     2, -- Blood Rune
     5, -- Frost Rune
@@ -27,20 +28,9 @@ core.barIndices = {
     3, -- Unholy Rune
     4, -- Unholy Rune
 }
-
-local function GetRuneGroup(rune_index)
-    if not rune_index then return end
-    local rune_group = 2
-
-    if rune_index <= 2 then
-        rune_group = 0
-    elseif rune_index <= 4 then
-        rune_group = 1
-    elseif rune_index <= 6 then
-        rune_group = 2
-    end
-
-    return rune_group
+core.runeToBarIndex = {}
+for i = 1, 6 do
+    core.runeToBarIndex[i] = core.barToRuneIndex[i]
 end
 
 local function split_string(input, delimiter)
@@ -51,15 +41,27 @@ local function split_string(input, delimiter)
     return result
 end
 
-local function GetBarIndex(rune_index)
-    return core.barIndices[rune_index]
+
+core.print_table = function(table, prefix)
+
+    for k, v in pairs(table) do
+        if type(v) == "table" then
+            if not prefix then prefix = "  " end
+            print(prefix .. k .. ":")
+            core.print_table(v, prefix .. "  ")
+        elseif prefix then
+            print(prefix, k, v)
+        else
+            print(k, v)
+        end
+    end
 end
 
-local CreateBar = function(rune_index)
-    local bar = CreateFrame("StatusBar", "Rune_" .. rune_index, core.frame)
-    bar.rune_index = rune_index
-    bar.bar_index = GetBarIndex(rune_index)
-    bar.rune_group = GetRuneGroup(rune_index)
+
+local CreateBar = function(bar_index)
+    local bar = CreateFrame("StatusBar", "RuneBar_" .. bar_index, core.frame)
+    bar.bar_index = bar_index
+    bar.rune_index = core.barToRuneIndex[bar_index]
 
     bar:SetSize(core.config.BAR_WIDTH, core.config.BAR_HEIGHT)
     bar:SetStatusBarTexture("Interface/Addons/DeathKnightRunes/media/statusbar/bar_background.tga")
@@ -69,9 +71,9 @@ local CreateBar = function(rune_index)
     bar:SetValue(8.33) -- Set the initial bar to be full
 
      -- Set the position of the bar
-    local group = math.floor((rune_index - 1) / 2)
-    local rang = (rune_index - 1) % 2
-    local x_offset = (rune_index - 1) * core.config.BAR_WIDTH + group * core.config.GAP_BETWEEN_GROUPS + (rang + group) * core.config.GAP_INSIDE_GROUP
+    local group = math.floor((bar.bar_index - 1) / 2)
+    local rang = (bar.bar_index - 1) % 2
+    local x_offset = (bar.bar_index - 1) * core.config.BAR_WIDTH + group * core.config.GAP_BETWEEN_GROUPS + (rang + group) * core.config.GAP_INSIDE_GROUP
     bar:SetPoint("LEFT", UIParent, "LEFT", core.config.FRAME_X + x_offset, core.config.FRAME_Y)
 
     -- Create a Background for the bar
@@ -101,18 +103,18 @@ local CreateBar = function(rune_index)
     bar.SetRuneColor = function(self)
         local rune_type = GetRuneType(self.rune_index)
 
-        local color = core.config.BLOOD_RUNE_COLOR
+        local color = core.config.BLOOD_RUNE_COLOR  -- Blood Runes: Red
         if rune_type == 2 then
-            color = core.config.UNHOLY_RUNE_COLOR
+            color = core.config.FROST_RUNE_COLOR  -- Frost Runes: Blue
         elseif rune_type == 3 then
-            color = core.config.FROST_RUNE_COLOR
+            color = core.config.UNHOLY_RUNE_COLOR  -- Unholy Runes: Green
         elseif rune_type == 4 then
             color = core.config.DEATH_RUNE_COLOR  -- Death Runes: Purple
         end
-        bar:SetStatusBarColor(unpack(color))  -- Unholy Runes: Green
+        bar:SetStatusBarColor(unpack(color))
     end
 
-    bar.UpdateProgress = function(self, start, rune_cd, rune_ready)
+    bar.UpdateBar = function(self, start, rune_cd, rune_ready)
 
         local now = GetTime()
         self.start = start
@@ -151,6 +153,7 @@ local CreateBar = function(rune_index)
         self:SetMinMaxValues(0, rune_cd)
         self:SetValue(progress)
         self.text:SetText(text_str)
+        self:SetRuneColor()
     end)
 
     return bar
@@ -167,31 +170,32 @@ local CreateRunesFrame = function()
     frame:SetAlpha(core.config.OUT_OF_COMBAT_ALPHA)
 
     frame.bars = {}
-    for rune_index = 1, 6 do
-        frame.bars[rune_index] = CreateBar(rune_index)
+    for bar_index = 1, 6 do
+        frame.bars[bar_index] = CreateBar(bar_index)
     end
 
-    frame.UpdateRune = function(self, rune_index)
+    frame.UpdateBar = function(self, bar_index)
+        local rune_index = core.barToRuneIndex[bar_index]
         local start, rune_cd, rune_ready = GetRuneCooldown(rune_index)
-        local bar = frame.bars[GetBarIndex(rune_index)]
-        bar:UpdateProgress(start, rune_cd, rune_ready)
+        local bar = frame.bars[bar_index]
+        bar:UpdateBar(start, rune_cd, rune_ready)
     end
 
     -- Updates the type and CD of all runes
-    frame.UpdateAllRunes = function(self)
-        for rune_index = 1, 6 do
-            frame:UpdateRune(rune_index)
+    frame.UpdateAllBars = function(self)
+        for bar_index = 1, 6 do
+            frame:UpdateBar(bar_index)
         end
     end
 
     -- Event handler for tracking runes
     frame:SetScript("OnEvent", function(self, event, rune_index, ...)
 
-        local bar_index = GetBarIndex(rune_index)
+        local bar_index = core.runeToBarIndex[rune_index]
 
         if event == "RUNE_POWER_UPDATE" then
-            if rune_index then
-                frame:UpdateRune(rune_index)
+            if bar_index then
+                frame:UpdateBar(bar_index)
             end
 
         elseif event == "RUNE_TYPE_UPDATE" then
@@ -206,7 +210,7 @@ local CreateRunesFrame = function()
             frame:SetAlpha(core.config.IN_COMBAT_ALPHA)
 
         elseif event == "PLAYER_ENTERING_WORLD" then
-            frame:UpdateAllRunes()
+            frame:UpdateAllBars()
         end
 
         return true
@@ -214,7 +218,7 @@ local CreateRunesFrame = function()
 
     -- Update each rune with the current values
     frame:SetScript("OnShow", function()
-        frame:UpdateAllRunes()
+        frame:UpdateAllBars()
     end)
 
 
