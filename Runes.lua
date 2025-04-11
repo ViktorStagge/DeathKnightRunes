@@ -1,24 +1,6 @@
 local ADDON_NAME, core = ...;
 
-core.config = {
-    BACKGROUND_ALPHA = 0.6,
-    TEXT_CD_SIZE = 12,
-    BAR_WIDTH = 35,
-    BAR_HEIGHT = 20,
-    BORDER_THICKNESS = 0,
-    GAP_INSIDE_GROUP = 6,
-    GAP_BETWEEN_GROUPS = 6,
-    FRAME_X = 640,
-    FRAME_Y= -70,
-    LOCK_FRAME = true,
-    BLOOD_RUNE_COLOR = {1, 0, 0},
-    UNHOLY_RUNE_COLOR = {103 / 255, 249 / 255, 112 / 255},
-    FROST_RUNE_COLOR = {81 / 255, 153 / 255, 1},
-    DEATH_RUNE_COLOR = {190/255, 57/255, 1},
-    OUT_OF_COMBAT_ALPHA = 0.4,
-    IN_COMBAT_ALPHA = 1,
-}
-
+core.config = core.GetConfig()
 
 core.barToRuneIndex = {
     1, -- Blood Rune
@@ -33,7 +15,8 @@ for i = 1, 6 do
     core.runeToBarIndex[i] = core.barToRuneIndex[i]
 end
 
-local function split_string(input, delimiter)
+
+core.SplitString = function(input, delimiter)
     local result = {}
     for match in (input .. delimiter):gmatch("(.-)" .. delimiter) do
         table.insert(result, match)
@@ -57,6 +40,14 @@ core.print_table = function(table, prefix)
     end
 end
 
+core.Round = function(n, decimals)
+    if n == nil then
+        return
+    end
+
+    local mult = 10 ^ (decimals or 0)
+    return math.floor(n * mult + 0.5) / mult
+end
 
 local CreateBar = function(bar_index)
     local bar = CreateFrame("StatusBar", "RuneBar_" .. bar_index, core.frame)
@@ -74,7 +65,7 @@ local CreateBar = function(bar_index)
     local group = math.floor((bar.bar_index - 1) / 2)
     local rang = (bar.bar_index - 1) % 2
     local x_offset = (bar.bar_index - 1) * core.config.BAR_WIDTH + group * core.config.GAP_BETWEEN_GROUPS + (rang + group) * core.config.GAP_INSIDE_GROUP
-    bar:SetPoint("LEFT", UIParent, "LEFT", core.config.FRAME_X + x_offset, core.config.FRAME_Y)
+    bar:SetPoint("LEFT", core.frame, "LEFT", x_offset, 0)
 
     -- Create a Background for the bar
     bar.bg = bar:CreateTexture(nil, "BACKGROUND")
@@ -159,15 +150,16 @@ local CreateBar = function(bar_index)
     return bar
 end
 
-
 local CreateRunesFrame = function()
 
     core.frame = CreateFrame("Frame", "DeathStrikeRunesFrame", UIParent)
     local frame = core.frame
-
     -- Set the position of the frame
-    frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    --frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "CENTER", core.config.FRAME_X or 0, core.config.FRAME_Y or 0)
     frame:SetAlpha(core.config.OUT_OF_COMBAT_ALPHA)
+    frame:SetSize(core.config.TOTAL_WIDTH, core.config.TOTAL_HEIGHT)
 
     frame.bars = {}
     for bar_index = 1, 6 do
@@ -221,11 +213,11 @@ local CreateRunesFrame = function()
         frame:UpdateAllBars()
     end)
 
-
     -- Drag functionality
     frame:SetScript("OnDragStart", function(self)
 
-        if core.config.LOCK_FRAME then
+        print(core.GetConfigValue("LOCK_FRAME") )
+        if core.GetConfigValue("LOCK_FRAME") then
             return
         end
 
@@ -233,17 +225,23 @@ local CreateRunesFrame = function()
     end)
 
     frame:SetScript("OnDragStop", function(self)
+        
+        self:StopMovingOrSizing()
 
-        if core.config.LOCK_FRAME then
+        if core.GetConfigValue("LOCK_FRAME") then
             return
         end
 
-        frame:StopMovingOrSizing()
+        -- Get current position
+        local point, _, relativePoint, xOffset, yOffset = self:GetPoint()
 
-        -- Save the new position for future use
-        local point, parent, relativePoint, xOffset, yOffset = self:GetPoint()
-        frame.config.FRAME_X = xOffset
-        frame.config.FRAME_Y = yOffset
+        -- Re-anchor to UIParent explicitly
+        self:ClearAllPoints()
+        self:SetPoint(point, UIParent, relativePoint, xOffset, yOffset)
+
+        -- Save position
+        RunesDB.FRAME_X = xOffset
+        RunesDB.FRAME_Y = yOffset
 
     end)
 
