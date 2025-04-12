@@ -150,7 +150,6 @@ core.defaultConfig.RP_BAR_COLOR = {
 }
 
 
-
 -- If DeathStrikeHealingMeterDB doesn't exist, initialize it with default values
 if not RunesDB then
     RunesDB = {}
@@ -189,4 +188,14 @@ core.GetConfig = function()
                         + (3 * config.GAP_INSIDE_GROUP) -- 3 spaces between 4 pairs
     config.TOTAL_HEIGHT = config.BAR_HEIGHT + max(abs(config.RP_FRAME_Y), abs(config.FRAME_Y)) + config.RP_BAR_HEIGHT
     return config
+end
+
+
+core.Round = function(n, decimals)
+    if n == nil then
+        return
+    end
+
+    local mult = 10 ^ (decimals or 0)
+    return math.floor(n * mult + 0.5) / mult
 end

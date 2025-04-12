@@ -40,15 +40,6 @@ core.print_table = function(table, prefix)
     end
 end
 
-core.Round = function(n, decimals)
-    if n == nil then
-        return
-    end
-
-    local mult = 10 ^ (decimals or 0)
-    return math.floor(n * mult + 0.5) / mult
-end
-
 local CreateBar = function(bar_index)
     local bar = CreateFrame("StatusBar", "RuneBar_" .. bar_index, core.frame)
     bar.bar_index = bar_index

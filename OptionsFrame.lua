@@ -3,6 +3,9 @@ local ADDON_NAME, core = ...;
 
 local frame
 
+local FRAME_NAME = "DeathKnightRunesOptionsFrame"
+local FRAME_TITLE = "Death Knight Runes"
+
 -- Creates a Float Option with a label and value
 local function CreateFloatOption(labelText, key)
     local content = frame.scroll.content
@@ -199,8 +202,8 @@ end
 -- Function to create the options frame
 core.CreateOptionsFrame = function()
     -- Create the main frame for the options
-    frame = CreateFrame("Frame", "DeathKnightRunesOptionsFrame", UIParent)
-    frame.name = "Death Knight Runes"  -- Title of the frame in the interface options
+    frame = CreateFrame("Frame", FRAME_NAME, UIParent)
+    frame.name = FRAME_TITLE  -- Title of the frame in the interface options
 
     -- Scroll Frame Setup
     frame.scroll = CreateFrame("ScrollFrame", "MyAddonScrollFrame", frame, "UIPanelScrollFrameTemplate")
@@ -217,7 +220,12 @@ core.CreateOptionsFrame = function()
     -- Title for the frame
     content.title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     content.title:SetPoint("TOPLEFT", 16, -16)
-    content.title:SetText("Death Knight Runes")
+    content.title:SetText(FRAME_TITLE)
+
+    -- Reload Notice
+    local reloadNotice = frame.scroll.content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    reloadNotice:SetPoint("TOPLEFT", frame.scroll.content.title, "BOTTOMLEFT", 0, -5)
+    reloadNotice:SetText("Some changes may require a /reload to take effect")
 
     for _, key in pairs(core.defaultConfig._keys) do
         local option = core.defaultConfig[key]
